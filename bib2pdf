@@ -1,0 +1,106 @@
+#!/bin/csh -f
+# create pdf file from bib file
+
+if("$1" == "clean")then
+  ./clean
+  exit
+endif
+
+if ($#argv == 0) then
+echo 'Usage: ./bib2pdf bibfile style'
+echo ' '
+echo Examples: 
+echo ./bib2pdf geo plain 
+echo ./bib2pdf geo asa 
+echo ./bib2pdf geo siam
+echo ./bib2pdf geo ametsoc
+echo ./bib2pdf geo gmd
+echo ./bib2pdf geo splncs04 
+exit 1
+endif
+
+rm -f $1.bbl $1.aux
+
+set bib=`echo $1 | sed 's/\.bib$//'`
+if("$2" == "")then
+set style="ametsoc"
+else
+set style=$2
+endif
+
+set texstyle=""
+set packages=""
+set optsty=""
+set optcls=""
+
+if ("$style" == "asa")then
+  set texstyle=asaproc
+  set bibstyle=asa
+  set packages=natbib
+endif
+if ("$style" == "siam")then
+  set texstyle=siamltex
+  set bibstyle=siam
+endif
+if ("$style" == "plain")then
+  set texstyle=article
+  set bibstyle=plain
+endif
+if ("$style" == "splncs04")then
+  set texstyle=article
+  set bibstyle=plain
+endif
+if ("$style" == "ametsoc")then
+  set texstyle=article
+  set bibstyle=ametsoc
+  set packages=ametsoc
+  set optsty='[conf]'
+  # set optcls='[twocolumn]'
+endif
+if ("$style" == "gmd")then
+  set texstyle=copernicus
+  set bibstyle=copernicus
+endif
+if("$texstyle" == "") then
+  echo Style $style not supported
+endif
+
+set tex=$bib
+echo creating $tex.tex
+echo "\documentclass$optcls{$texstyle} \usepackage{url} \usepackage{fullpage}" > $tex.tex
+if ("$packages" != "") then
+    echo "\usepackage$optsty{$packages}" >> $tex.tex
+endif
+echo "\begin{document} \tolerance=9999 \pretolerance=9999" >> $tex.tex
+grep @ $bib.bib | grep -v @PREAMBLE | sed 's/^.*{/\\nocite{/' | sed 's/,.*$/}/' >> $tex.tex
+echo "\bibliographystyle{$bibstyle} \bibliography{$bib} \end{document}" >> $tex.tex
+echo created $tex.tex
+
+#rm -f $tex.{aux,bbl}
+
+setenv BSTINPUTS "./stylefiles:"
+setenv TEXINPUTS ".:./stylefiles:"
+echo pdflatex $tex.tex
+pdflatex $tex.tex
+echo bibtex $tex
+bibtex $tex
+set err=$status
+echo Bibtex returned $err
+if ($err != 0)then
+    echo "BibTeX error, exiting"
+    exit $err
+endif
+echo pdflatex $tex.tex
+pdflatex $tex.tex
+echo pdflatex $tex.tex
+pdflatex $tex.tex
+set err=$status
+if ($err != 0)then
+    echo "LaTeX error, exiting"
+    exit $err
+endif
+#if ("`uname`" == "Darwin") then
+#open $tex.pdf
+#endif
+# rm -f $tex.log $tex.blg $tex.bbl $tex.aux
+
