@@ -19,7 +19,7 @@ echo ./bib2pdf geo splncs04
 exit 1
 endif
 
-rm -f $1.bbl $1.aux
+# rm -f $1.bbl $1.aux
 
 set bib=`echo $1 | sed 's/\.bib$//'`
 if("$2" == "")then
